@@ -1,0 +1,38 @@
+global
+	log /dev/log local0
+	daemon
+
+        # Default SSL material locations
+        ca-base /etc/ssl/certs
+        crt-base /etc/ssl/private
+
+defaults
+	log	global
+	mode	http
+	option	httplog
+	option	dontlognull
+        timeout connect 5000
+        timeout client  50000
+        timeout server  50000
+	errorfile 400 /usr/local/etc/haproxy/errors/400.http # default errorfile location
+	errorfile 403 /usr/local/etc/haproxy/errors/403.http # in haproxy docker image
+	errorfile 408 /usr/local/etc/haproxy/errors/408.http
+	errorfile 500 /usr/local/etc/haproxy/errors/500.http
+	errorfile 502 /usr/local/etc/haproxy/errors/502.http
+	errorfile 503 /usr/local/etc/haproxy/errors/503.http
+	errorfile 504 /usr/local/etc/haproxy/errors/504.http
+
+frontend web-servers
+        bind *:80
+        mode http
+	default_backend nginx-nodes
+
+backend nginx-nodes
+	mode http
+	balance roundrobin
+	option forwardfor
+	http-request set-header X-Forwarded-Port %[dst_port]
+	timeout server 120s
+
+	{{range service "nginx-node"}}
+	server {{.ID}} {{.Address}}:{{.Port}} check{{end}}

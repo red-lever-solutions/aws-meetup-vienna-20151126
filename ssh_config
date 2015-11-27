@@ -1,0 +1,18 @@
+TCPKeepAlive yes
+ServerAliveInterval 15
+
+Host bastion
+     HostName <BASTION_IP>
+     Port 10022
+     User ubuntu
+     IdentityFile ~/.ssh/aws_meetup_rsa
+     ForwardAgent yes
+
+Host 10.0.*.*
+     Port 22
+     User ubuntu
+     IdentityFile ~/.ssh/aws_meetup_rsa
+     CheckHostIP no
+     StrictHostKeyChecking no
+     UserKnownHostsFile /dev/null
+     ProxyCommand ssh -p 10022 -i ~/.ssh/aws_meetup_rsa ubuntu@<BASTION_IP> nc %h %p

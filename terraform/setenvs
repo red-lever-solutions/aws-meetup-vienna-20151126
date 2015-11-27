@@ -1,0 +1,4 @@
+echo "Enter AWS_ACCESS_KEY_ID to export it as environment variable"
+export AWS_ACCESS_KEY_ID=`read -e`
+echo "Enter AWS_SECRET_ACCESS_KEY to export it as environment variable (characters are not echoed)"
+export AWS_SECRET_ACCESS_KEY=`read -e -s`

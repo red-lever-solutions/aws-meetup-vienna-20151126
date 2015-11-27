@@ -1,0 +1,25 @@
+nginx:
+  image: nginx:1.9
+  ports:
+    - 80
+  volumes:
+    - ${PWD}/data:/usr/share/nginx/html:ro
+  environment:
+    SERVICE_80_NAME: nginx-node
+  restart: on-failure
+
+consul-registrator:
+  image: gliderlabs/registrator
+  net: host
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock
+  command: ["-ip=${PRIVATE_IP}", "consul://${PRIVATE_IP}:8500"]
+  restart: on-failure
+
+consul-agent:
+  image: gliderlabs/consul
+  container_name: consul-agent
+  net: host
+  command: ["agent", "-retry-join=10.0.5.10", "-retry-join=10.0.6.10", "-retry-join=10.0.7.10",
+  "-data-dir=/tmp/consul", "-bind=${PRIVATE_IP}", "-client=${PRIVATE_IP}", "-log-level=debug"]
+  restart: on-failure

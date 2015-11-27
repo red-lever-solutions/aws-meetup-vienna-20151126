@@ -1,0 +1,47 @@
+#cloud-config
+# Cloud config for application servers 
+
+# log cloud-config output:
+output: {all: '| /usr/bin/logger -t consul.cloudinit'}
+
+# Update packages:
+package_upgrade: true
+
+# Install packages:
+packages:
+ - emacs24-nox
+ - htop
+ - unzip
+
+runcmd:
+ # Set hostname
+ - sed -i '1s/ip/consul/' /etc/hostname
+ - echo "127.0.0.1 $(cat /etc/hostname)" >> /etc/hosts
+ - service hostname restart
+
+ - cd /tmp
+ - wget https://dl.bintray.com/mitchellh/consul/0.5.2_linux_amd64.zip -O consul.zip
+ - unzip consul.zip >/dev/null
+ - chmod +x consul
+ - mv consul /usr/local/bin/consul
+ - mkdir -p /etc/consul.d
+ - mkdir -p /mnt/consul
+ - mkdir -p /etc/service
+ - wget https://dl.bintray.com/mitchellh/consul/0.5.2_web_ui.zip -O consul_web_ui.zip
+ - unzip consul_web_ui.zip >/dev/null
+ - mkdir -p /opt/consul/
+ - mv dist /opt/consul/ui
+
+ # Install docker
+ - curl -sSL https://get.docker.com/ | sudo sh
+
+ # Restrict network access between container:
+ - echo 'DOCKER_OPTS="--icc=false"' >> /etc/default/docker
+ - service docker restart
+
+ # Copy Bootstrap data from S3:
+ - docker run --rm -i --privileged -v /tmp/bootstrap:/target -e BUCKET=aws-meetup-deploy -e AWS_KEY="<AWS_KEY>" -e AWS_SECRET="<AWS_SECRET>" -e S3CMD="cp -v -r /s3bucket/consul-server/* /target/" wernerwws/docker-s3
+
+ # call bootstrap script:
+ - cd /tmp/bootstrap
+ - ./bootstrap.sh

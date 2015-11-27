@@ -1,0 +1,38 @@
+#cloud-config
+# Cloud config for application servers 
+
+# log cloud-config output:
+output: {all: '| /usr/bin/logger -t bastion.cloudinit'}
+
+# Update packages:
+package_upgrade: true
+
+# Install packages:
+packages:
+ - emacs24-nox
+ - htop
+
+mounts:
+ - [ xvdh, /data, "ext4", "defaults,nobootwait", "0", "0" ]
+
+runcmd:
+ # mount /data
+ - mount -a
+
+ # Set hostname
+ - sed -i '1s/ip/bastion/' /etc/hostname
+ - echo "127.0.0.1 $(cat /etc/hostname)" >> /etc/hosts
+ - service hostname restart
+
+ # Change ssh port to 10022 and restrict root and user login
+ - sed -i -e '/^Port/s/^.*$/Port 10022/' etc/ssh/sshd_config
+ - sed -i -e '/^PermitRootLogin/s/^.*$/PermitRootLogin no/' /etc/ssh/sshd_config
+ - sed -i -e '$aAllowUsers ubuntu' /etc/ssh/sshd_config
+ - restart ssh
+
+ # Install docker
+ - curl -sSL https://get.docker.com/ | sudo sh
+
+ # Restrict network access between container:
+ - echo 'DOCKER_OPTS="--icc=false"' >> /etc/default/docker
+ - service docker restart

@@ -1,0 +1,16 @@
+loadbalancer:
+  build: haproxy-template/
+  net: host
+  environment:
+    CONSUL_CONNECT: ${PRIVATE_IP}:8500
+  volumes:
+    - /dev/log:/dev/log
+  restart: on-failure
+
+consul-agent:
+  image: gliderlabs/consul
+  net: host
+  container_name: consul-agent
+  command: ["agent", "-retry-join=10.0.5.10", "-retry-join=10.0.6.10", "-retry-join=10.0.7.10",
+  "-data-dir=/tmp/consul", "-bind=${PRIVATE_IP}", "-client=${PRIVATE_IP}", "-log-level=debug"]
+  restart: on-failure

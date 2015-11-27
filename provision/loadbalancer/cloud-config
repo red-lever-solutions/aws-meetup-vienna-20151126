@@ -1,0 +1,37 @@
+#cloud-config
+# Cloud config for application servers 
+
+# log cloud-config output:
+output: {all: '| /usr/bin/logger -t loadbalancer.cloudinit'}
+
+# Update packages:
+package_upgrade: true
+
+# Install packages:
+packages:
+ - emacs24-nox
+ - htop
+
+runcmd:
+ # Set hostname
+ - sed -i '1s/ip/loadbalancer/' /etc/hostname
+ - echo "127.0.0.1 $(cat /etc/hostname)" >> /etc/hosts
+ - service hostname restart
+
+ # Install docker
+ - curl -sSL https://get.docker.com/ | sudo sh
+
+ # Restrict network access between container:
+ - echo 'DOCKER_OPTS="--icc=false"' >> /etc/default/docker
+ - service docker restart
+
+ # Copy Bootstrap data from S3:
+ - docker run --rm -i --privileged -v /tmp/bootstrap:/target -e BUCKET=aws-meetup-deploy -e AWS_KEY="<AWS_KEY>" -e AWS_SECRET="<AWS_SECRET>" -e S3CMD="cp -v -r /s3bucket/loadbalancer/* /target/" wernerwws/docker-s3
+
+ - curl -L https://github.com/docker/compose/releases/download/1.5.1/docker-compose-`uname -s`-`uname -m` > docker-compose
+ - chmod +x docker-compose
+ - sudo mv docker-compose /usr/local/bin/docker-compose
+
+ # call bootstrap script:
+ - cd /tmp/bootstrap
+ - ./bootstrap.sh
